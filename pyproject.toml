@@ -1,1 +1,19 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
 
+[project]
+name = "spectrace"
+version = "0.1.0.dev0"
+description = "Open-source RF fingerprinting and rogue device detection."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "GPL-3.0-or-later"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
