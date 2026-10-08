@@ -14,6 +14,10 @@ class PlutoConfigurationError(RuntimeError):
     """Raised when Spectrace cannot apply configuration to a PlutoSDR."""
 
 
+class PlutoCaptureError(RuntimeError):
+    """Raised when Spectrace cannot capture IQ samples from a PlutoSDR."""  
+
+
 @dataclass
 class PlutoRXConfig:
     """Configuration parameters for the PlutoSDR receive path."""
@@ -86,4 +90,26 @@ class PlutoSDR:
         except Exception as exc:
             raise PlutoConfigurationError(
                 "Could not apply receive configuration to PlutoSDR."
+            ) from exc
+
+    def capture(self):
+        """Capture one buffer of IQ samples from the PlutoSDR.
+
+        Returns:
+            IQ samples captured from the SDR.
+
+        Raises:
+            PlutoConnectionError: If the SDR is not connected.
+            PlutoCaptureError: If IQ samples cannot be captured.
+        """
+        if self.device is None:
+            raise PlutoConnectionError(
+                "Cannot capture IQ samples before establishing a connection."
+            )
+
+        try:
+            return self.device.rx()
+        except Exception as exc:
+            raise PlutoCaptureError(
+                "Could not capture IQ samples from PlutoSDR."
             ) from exc
