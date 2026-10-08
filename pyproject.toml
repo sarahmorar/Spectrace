@@ -9,6 +9,10 @@ description = "Open-source RF fingerprinting and rogue device detection."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-or-later"
+dependencies = [
+    "pyadi-iio",
+    "pylibiio<1.0",
+]
 
 [project.optional-dependencies]
 dev = [
