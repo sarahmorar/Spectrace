@@ -1,10 +1,14 @@
 """Tests for PlutoSDR connection management."""
 
+import numpy as np
+import pytest
+
 from unittest.mock import patch
 
 import pytest
 
 from spectrace.capture.pluto import (
+    PlutoCaptureError,
     PlutoConfigurationError,
     PlutoConnectionError,
     PlutoRXConfig,
@@ -166,3 +170,51 @@ def test_manual_gain_requires_value():
             match="Manual RX gain mode requires a gain value",
         ):
             sdr.configure_rx(config)
+
+def test_capture_returns_iq_samples():
+    """Verify that capture returns IQ samples provided by the PlutoSDR."""
+    expected_samples = np.array(
+    [
+        1.0 + 2.0j,
+        3.0 + 4.0j,
+        5.0 + 6.0j,
+    ]
+)
+
+    with patch("spectrace.capture.pluto.adi.Pluto") as mock_pluto:
+        device = mock_pluto.return_value
+        device.rx.return_value = expected_samples
+
+        sdr = PlutoSDR(uri="ip:test-device")
+        sdr.connect()
+
+        samples = sdr.capture()
+
+        device.rx.assert_called_once_with()
+        assert isinstance(samples, np.ndarray)
+        np.testing.assert_array_equal(samples, expected_samples)
+
+def test_capture_failure():
+    """Verify that SDR capture failures raise a Spectrace-specific error."""
+    with patch("spectrace.capture.pluto.adi.Pluto") as mock_pluto:
+        device = mock_pluto.return_value
+        device.rx.side_effect = RuntimeError("SDR receive failed")
+
+        sdr = PlutoSDR(uri="ip:test-device")
+        sdr.connect()
+
+        with pytest.raises(
+            PlutoCaptureError,
+            match="Could not capture IQ samples",
+        ):
+            sdr.capture()
+
+def test_capture_requires_connection():
+    """Verify that IQ capture requires an established SDR connection."""
+    sdr = PlutoSDR(uri="ip:test-device")
+
+    with pytest.raises(
+        PlutoConnectionError,
+        match="Cannot capture IQ samples before establishing a connection",
+    ):
+        sdr.capture()
