@@ -9,6 +9,29 @@ description = "Open-source RF fingerprinting and rogue device detection."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-or-later"
+
+authors = [
+    { name = "Sarah Morar" }
+]
+
+keywords = [
+    "cybersecurity",
+    "software-defined-radio",
+    "rf",
+    "rf-fingerprinting",
+    "rogue-device-detection",
+    "sdr",
+    "machine-learning",
+]
+
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+]
+
 dependencies = [
     "numpy",
     "pyadi-iio",
