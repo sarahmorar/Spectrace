@@ -1,5 +1,7 @@
 """Frequency-domain signal processing utilities for Spectrace."""
 
+from dataclasses import dataclass
+
 import numpy as np
 
 
@@ -8,6 +10,14 @@ from spectrace.capture.validation import IQValidationError, validate_iq_samples
 
 class SpectrumProcessingError(RuntimeError):
     """Raised when Spectrace cannot compute frequency-domain spectrum data."""
+
+
+@dataclass
+class SpectrumResult:
+    """Processed frequency and power data for an IQ capture."""
+
+    frequencies: np.ndarray
+    power_db: np.ndarray
 
 
 def compute_spectrum(samples: np.ndarray) -> np.ndarray:
@@ -145,3 +155,37 @@ def apply_window(
 
     return samples * window
 
+def process_spectrum(
+    samples: np.ndarray,
+    sample_rate: float,
+    center_frequency: float,
+) -> SpectrumResult:
+    """Process IQ samples into aligned frequency and power data.
+
+    Args:
+        samples: Complex IQ samples to process.
+        sample_rate: SDR sample rate in Hz.
+        center_frequency: SDR center frequency in Hz.
+
+    Returns:
+        Processed RF frequencies and relative power in decibels.
+    """
+    windowed_samples = apply_window(samples)
+
+    spectrum = compute_spectrum(windowed_samples)
+
+    frequencies = generate_frequency_axis(
+        spectrum.size,
+        sample_rate,
+        center_frequency,
+    )
+
+    power_db = compute_power_spectrum(
+        spectrum,
+        decibels=True,
+    )
+
+    return SpectrumResult(
+        frequencies=frequencies,
+        power_db=power_db,
+    )

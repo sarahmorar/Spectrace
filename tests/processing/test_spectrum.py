@@ -5,10 +5,12 @@ import pytest
 
 from spectrace.processing.spectrum import (
     SpectrumProcessingError,
+    SpectrumResult,
     apply_window,
     compute_power_spectrum,
     compute_spectrum,
     generate_frequency_axis,
+    process_spectrum,
 )
 
 
@@ -344,3 +346,62 @@ def test_apply_window_rejects_unsupported_window():
 
     with pytest.raises(SpectrumProcessingError):
         apply_window(samples, window_type="unsupported")
+
+def test_process_spectrum_returns_frequency_and_power_data():
+    """Verify that spectrum processing returns aligned frequency and power data. (AKA, does the function produce a valid SpectrumResult?)"""
+    sample_count = 8
+    sample_rate = 2_000_000
+    center_frequency = 2_437_000_000
+    sample_indices = np.arange(sample_count)
+
+    samples = np.exp(
+        2j * np.pi * sample_indices / sample_count
+    )
+
+    result = process_spectrum(
+        samples,
+        sample_rate=sample_rate,
+        center_frequency=center_frequency,
+    )
+
+    assert isinstance(result, SpectrumResult)
+    assert isinstance(result.frequencies, np.ndarray)
+    assert isinstance(result.power_db, np.ndarray)
+    assert result.frequencies.size == sample_count
+    assert result.power_db.size == sample_count
+
+def test_process_spectrum_locates_synthetic_tone():
+    """Verify that a synthetic tone peaks at the expected RF frequency. (AKA, does the function correctly identify the frequency of a known tone?)"""
+    sample_count = 64
+    sample_rate = 2_000_000
+    center_frequency = 2_437_000_000
+    tone_offset = 250_000
+
+    sample_indices = np.arange(sample_count)
+    samples = np.exp(
+        2j * np.pi * tone_offset * sample_indices / sample_rate
+    )
+
+    result = process_spectrum(
+        samples,
+        sample_rate=sample_rate,
+        center_frequency=center_frequency,
+    )
+
+    peak_index = np.argmax(result.power_db)
+    peak_frequency = result.frequencies[peak_index]
+
+    expected_frequency = center_frequency + tone_offset
+
+    assert peak_frequency == expected_frequency
+
+def test_process_spectrum_rejects_invalid_iq_samples():
+    """Ensure the processing pipeline rejects invalid IQ sample data. (AKA, does the function handle invalid IQ inputs correctly?)"""
+    samples = np.array([1.0, 2.0, 3.0, 4.0])
+
+    with pytest.raises(SpectrumProcessingError):
+        process_spectrum(
+            samples,
+            sample_rate=2_000_000,
+            center_frequency=2_437_000_000,
+        )
