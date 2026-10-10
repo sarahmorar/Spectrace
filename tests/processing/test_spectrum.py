@@ -5,6 +5,7 @@ import pytest
 
 from spectrace.processing.spectrum import (
     SpectrumProcessingError,
+    apply_window,
     compute_power_spectrum,
     compute_spectrum,
     generate_frequency_axis,
@@ -265,3 +266,81 @@ def test_compute_power_spectrum_preserves_spectrum_size():
     result = compute_power_spectrum(spectrum)
 
     assert result.size == spectrum.size
+
+def test_apply_window_applies_hann_window():
+    """Verify that a Hann window is applied to complex IQ samples. (AKA, does the function apply the correct windowing function?)"""
+    samples = np.array(
+        [
+            1.0 + 1.0j,
+            1.0 + 1.0j,
+            1.0 + 1.0j,
+            1.0 + 1.0j,
+        ]
+    )
+
+    expected = samples * np.hanning(samples.size)
+
+    result = apply_window(samples)
+
+    np.testing.assert_allclose(result, expected)
+
+def test_apply_window_does_not_modify_input():
+    """Ensure windowing leaves the original IQ samples unchanged. (AKA, does the function avoid modifying the input samples?)"""
+    samples = np.array(
+        [
+            1.0 + 2.0j,
+            3.0 + 4.0j,
+            5.0 + 6.0j,
+            7.0 + 8.0j,
+        ]
+    )
+    original_samples = samples.copy()
+
+    apply_window(samples)
+
+    np.testing.assert_array_equal(samples, original_samples)
+
+def test_apply_window_preserves_size_and_complex_values():
+    """Ensure windowing preserves sample count and complex IQ values. (AKA, does the function maintain the input array's properties?)"""
+    samples = np.array(
+        [
+            1.0 + 2.0j,
+            3.0 + 4.0j,
+            5.0 + 6.0j,
+            7.0 + 8.0j,
+        ]
+    )
+
+    result = apply_window(samples)
+
+    assert isinstance(result, np.ndarray)
+    assert result.size == samples.size
+    assert np.iscomplexobj(result)
+
+@pytest.mark.parametrize(
+    "invalid_samples",
+    [
+        [1.0 + 2.0j, 3.0 + 4.0j],
+        np.array([], dtype=complex),
+        np.array([1.0, 2.0, 3.0]),
+        np.array([1.0 + 2.0j, np.nan + 0.0j]),
+    ],
+)
+def test_apply_window_rejects_invalid_iq_samples(invalid_samples):
+    """Ensure windowing rejects invalid IQ sample data. (AKA, does the function handle invalid IQ inputs correctly?)"""
+    with pytest.raises(SpectrumProcessingError):
+        apply_window(invalid_samples)
+
+def test_apply_window_rejects_unsupported_window():
+    """Ensure windowing rejects unsupported window types. (AKA, does the function handle unsupported window types correctly?)"""
+    samples = np.array(
+        [
+            1.0 + 1.0j,
+            2.0 + 2.0j,
+            3.0 + 3.0j,
+            4.0 + 4.0j,
+        ]
+    )
+
+    with pytest.raises(SpectrumProcessingError):
+        apply_window(samples, window_type="unsupported")
