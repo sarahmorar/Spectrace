@@ -5,6 +5,7 @@ import pytest
 
 from spectrace.processing.spectrum import (
     SpectrumProcessingError,
+    compute_power_spectrum,
     compute_spectrum,
     generate_frequency_axis,
 )
@@ -160,7 +161,7 @@ def test_generate_frequency_axis_rejects_invalid_sample_rate():
         )
 
 def test_generate_frequency_axis_rejects_invalid_center_frequency():
-    """Ensure frequency-axis generation rejects a non-positive center frequency."""
+    """Ensure frequency-axis generation rejects a non-positive center frequency. (AKA, does the function handle invalid center frequencies?)"""
     with pytest.raises(SpectrumProcessingError):
         generate_frequency_axis(
             sample_count=8,
@@ -169,7 +170,7 @@ def test_generate_frequency_axis_rejects_invalid_center_frequency():
         )
 
 def test_generate_frequency_axis_matches_sample_count():
-    """Ensure the frequency axis contains one value for each FFT bin."""
+    """Ensure the frequency axis contains one value for each FFT bin. (AKA, does the function produce the correct number of frequency bins?)"""
     sample_count = 16
 
     result = generate_frequency_axis(
@@ -179,3 +180,88 @@ def test_generate_frequency_axis_matches_sample_count():
     )
 
     assert result.size == sample_count
+
+def test_compute_power_spectrum_returns_expected_power():
+    """Verify that complex spectrum values are converted to normalized power. (AKA, does the function compute the correct power spectrum?)"""
+    spectrum = np.array(
+        [
+            4.0 + 0.0j,
+            0.0 + 4.0j,
+            2.0 + 0.0j,
+            0.0 + 2.0j,
+        ]
+    )
+
+    expected = np.array(
+        [
+            1.0,
+            1.0,
+            0.25,
+            0.25,
+        ]
+    )
+
+    result = compute_power_spectrum(spectrum)
+
+    np.testing.assert_allclose(result, expected)
+
+def test_compute_power_spectrum_returns_decibels():
+    """Verify that normalized power can be converted to decibels. (AKA, does the function compute the correct power spectrum in dB?)"""
+    spectrum = np.array(
+        [
+            4.0 + 0.0j,
+            0.0 + 4.0j,
+            2.0 + 0.0j,
+            0.0 + 2.0j,
+        ]
+    )
+
+    expected = np.array(
+        [
+            0.0,
+            0.0,
+            -6.02059991,
+            -6.02059991,
+        ]
+    )
+
+    result = compute_power_spectrum(spectrum, decibels=True)
+
+    np.testing.assert_allclose(result, expected)
+
+def test_compute_power_spectrum_handles_zero_power():
+    """Ensure zero-power bins produce finite decibel values. (AKA, does the function handle zero-power inputs correctly?)"""
+    spectrum = np.zeros(4, dtype=complex)
+
+    result = compute_power_spectrum(spectrum, decibels=True)
+
+    assert np.all(np.isfinite(result))
+
+@pytest.mark.parametrize(
+    "invalid_spectrum",
+    [
+        [1.0 + 2.0j, 3.0 + 4.0j],
+        np.array([], dtype=complex),
+        np.array([1.0, 2.0, 3.0]),
+        np.array([1.0 + 2.0j, np.nan + 0.0j]),
+    ],
+)
+def test_compute_power_spectrum_rejects_invalid_input(invalid_spectrum):
+    """Ensure power computation rejects invalid frequency spectra. (AKA, does the function handle invalid spectrum inputs correctly?)"""
+    with pytest.raises(SpectrumProcessingError):
+        compute_power_spectrum(invalid_spectrum)
+
+def test_compute_power_spectrum_preserves_spectrum_size():
+    """Ensure power output contains one value for each spectrum bin. (AKA, does the function produce the correct number of power bins?)"""
+    spectrum = np.array(
+        [
+            1.0 + 1.0j,
+            2.0 + 2.0j,
+            3.0 + 3.0j,
+            4.0 + 4.0j,
+        ]
+    )
+
+    result = compute_power_spectrum(spectrum)
+
+    assert result.size == spectrum.size
