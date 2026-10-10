@@ -3,7 +3,11 @@
 import numpy as np
 import pytest
 
-from spectrace.processing.spectrum import SpectrumProcessingError, compute_spectrum
+from spectrace.processing.spectrum import (
+    SpectrumProcessingError,
+    compute_spectrum,
+    generate_frequency_axis,
+)
 
 
 def test_compute_spectrum_returns_shifted_fft():
@@ -85,3 +89,93 @@ def test_compute_spectrum_rejects_real_samples():
 
     with pytest.raises(SpectrumProcessingError):
         compute_spectrum(samples)
+
+def test_generate_frequency_axis_returns_expected_frequencies():
+    """Verify that FFT bins map to the expected absolute RF frequencies. (AKA, does the frequency axis generation produce the correct frequencies?)"""
+    sample_count = 8
+    sample_rate = 2_000_000
+    center_frequency = 2_437_000_000
+
+    expected = np.array(
+        [
+            2_436_000_000,
+            2_436_250_000,
+            2_436_500_000,
+            2_436_750_000,
+            2_437_000_000,
+            2_437_250_000,
+            2_437_500_000,
+            2_437_750_000,
+        ]
+    )
+
+    result = generate_frequency_axis(
+        sample_count,
+        sample_rate,
+        center_frequency,
+    )
+
+    np.testing.assert_allclose(result, expected)
+
+def test_generate_frequency_axis_supports_odd_sample_count():
+    """Verify that frequency-axis generation supports an odd number of FFT bins. (AKA, does the function handle odd-sized FFTs?)"""
+    sample_count = 5
+    sample_rate = 1_000_000
+    center_frequency = 100_000_000
+
+    expected = np.array(
+        [
+            99_600_000,
+            99_800_000,
+            100_000_000,
+            100_200_000,
+            100_400_000,
+        ]
+    )
+
+    result = generate_frequency_axis(
+        sample_count,
+        sample_rate,
+        center_frequency,
+    )
+
+    np.testing.assert_allclose(result, expected)
+
+def test_generate_frequency_axis_rejects_invalid_sample_count():
+    """Ensure frequency-axis generation rejects a non-positive sample count. (AKA, does the function handle invalid sample counts?)"""
+    with pytest.raises(SpectrumProcessingError):
+        generate_frequency_axis(
+            sample_count=0,
+            sample_rate=2_000_000,
+            center_frequency=2_437_000_000,
+        )
+
+def test_generate_frequency_axis_rejects_invalid_sample_rate():
+    """Ensure frequency-axis generation rejects a non-positive sample rate. (AKA, does the function handle invalid sample rates?)"""
+    with pytest.raises(SpectrumProcessingError):
+        generate_frequency_axis(
+            sample_count=8,
+            sample_rate=0,
+            center_frequency=2_437_000_000,
+        )
+
+def test_generate_frequency_axis_rejects_invalid_center_frequency():
+    """Ensure frequency-axis generation rejects a non-positive center frequency."""
+    with pytest.raises(SpectrumProcessingError):
+        generate_frequency_axis(
+            sample_count=8,
+            sample_rate=2_000_000,
+            center_frequency=0,
+        )
+
+def test_generate_frequency_axis_matches_sample_count():
+    """Ensure the frequency axis contains one value for each FFT bin."""
+    sample_count = 16
+
+    result = generate_frequency_axis(
+        sample_count=sample_count,
+        sample_rate=2_000_000,
+        center_frequency=2_437_000_000,
+    )
+
+    assert result.size == sample_count

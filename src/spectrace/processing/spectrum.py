@@ -32,3 +32,43 @@ def compute_spectrum(samples: np.ndarray) -> np.ndarray:
     spectrum = np.fft.fft(samples)
 
     return np.fft.fftshift(spectrum)
+
+def generate_frequency_axis(
+    sample_count: int,
+    sample_rate: float,
+    center_frequency: float,
+) -> np.ndarray:
+    """Generate absolute RF frequencies for shifted FFT bins.
+
+    Args:
+        sample_count: Number of frequency bins in the spectrum.
+        sample_rate: SDR sample rate in Hz.
+        center_frequency: SDR center frequency in Hz.
+
+    Returns:
+        Absolute RF frequency for each shifted FFT bin.
+
+    Raises:
+        SpectrumProcessingError: If frequency-axis parameters are invalid.
+    """
+    # Reject invalid FFT sizes before attempting frequency calculations.
+    if sample_count <= 0:
+        raise SpectrumProcessingError(
+            "Sample count must be greater than zero."
+        )
+
+    if sample_rate <= 0:
+        raise SpectrumProcessingError(
+            "Sample rate must be greater than zero."
+        )
+
+    if center_frequency <= 0:
+        raise SpectrumProcessingError(
+            "Center frequency must be greater than zero."
+        )
+
+    frequency_offsets = np.fft.fftshift(
+        np.fft.fftfreq(sample_count, d=1 / sample_rate)
+    )
+
+    return frequency_offsets + center_frequency
