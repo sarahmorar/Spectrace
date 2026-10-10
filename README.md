@@ -9,9 +9,9 @@ The project is currently in early development. The SDR acquisition layer is
 functional, providing a foundation for signal processing, transmission detection,
 RF fingerprinting, and device classification.
 
-> **Project Status:** Active development
-> **Current Milestone:** M2 — Signal Processing complete.
-> **Next Milestone:** M3 — Transmission Detection
+**Project Status:** Active development
+**Current Milestone:** M2 — Signal Processing complete.
+**Next Milestone:** M3 — Transmission Detection
 
 ---
 
