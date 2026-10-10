@@ -117,3 +117,31 @@ def compute_power_spectrum(
 
     return power
 
+def apply_window(
+        samples: np.ndarray,
+        window_type: str = "hann",
+    ) -> np.ndarray:
+    """Apply a Hann window to complex IQ samples.
+
+    Args:
+        samples: Complex IQ samples to window.
+
+    Returns:
+        Windowed complex IQ samples.
+    """
+    try:
+        validate_iq_samples(samples)
+    except IQValidationError as exc:
+        raise SpectrumProcessingError(
+            "Cannot apply window to invalid IQ samples."
+        ) from exc
+    
+    if window_type != "hann":
+        raise SpectrumProcessingError(
+            f"Unsupported window type: {window_type}"
+        )
+    
+    window = np.hanning(samples.size)
+
+    return samples * window
+
