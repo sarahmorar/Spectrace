@@ -72,3 +72,48 @@ def generate_frequency_axis(
     )
 
     return frequency_offsets + center_frequency
+
+def compute_power_spectrum(
+    spectrum: np.ndarray,
+    decibels: bool = False,
+) -> np.ndarray:
+    """Compute normalized power from a complex frequency-domain spectrum.
+
+    Args:
+        spectrum: Complex frequency-domain spectrum.
+        decibels: Whether to return power in decibels.
+
+    Returns:
+        Normalized power, optionally converted to decibels.
+    """
+    if not isinstance(spectrum, np.ndarray):
+        raise SpectrumProcessingError(
+            "Frequency spectrum must be a NumPy array."
+        )
+
+    if spectrum.size == 0:
+        raise SpectrumProcessingError(
+            "Frequency spectrum cannot be empty."
+        )
+
+    if not np.iscomplexobj(spectrum):
+        raise SpectrumProcessingError(
+            "Frequency spectrum must be complex-valued."
+        )
+
+    if not np.all(np.isfinite(spectrum)):
+        raise SpectrumProcessingError(
+            "Frequency spectrum must contain only finite values."
+        )
+
+    sample_count = spectrum.size
+    magnitude = np.abs(spectrum)
+    power = (magnitude / sample_count) ** 2
+
+    if decibels:
+        # Apply a numerical floor so zero-power bins do not produce -inf.
+        power_floor = np.finfo(float).tiny
+        return 10 * np.log10(np.maximum(power, power_floor))
+
+    return power
+
